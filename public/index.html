@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- Login Page -->
+<div id="loginPage" class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1>Task Manager</h1>
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Login</button>
+            </form>
+            <p class="auth-switch">
+                Don't have an account? <a href="#" id="showRegister">Register here</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Register Page -->
+<div id="registerPage" class="auth-page hidden">
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1>Task Manager</h1>
+            <h2>Create Account</h2>
+            <form id="registerForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="registerFirstName">First Name</label>
+                        <input type="text" id="registerFirstName" required minlength="2">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerLastName">Last Name</label>
+                        <input type="text" id="registerLastName" required minlength="2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" required minlength="3">
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Register</button>
+            </form>
+            <p class="auth-switch">
+                Already have an account? <a href="#" id="showLogin">Login here</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Main App (Tasks) -->
+<div id="mainApp" class="hidden">
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Task Manager</h1>
+            <div class="header-actions">
+                <span id="userInfo" class="user-info"></span>
+                <button id="statsBtn" class="btn btn-secondary">Statistics</button>
+                <button id="trashBtn" class="btn btn-secondary">Trash</button>
+                <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
+                <button id="newTaskBtn" class="btn btn-primary">New Task</button>
+                <button id="logoutBtn" class="btn btn-danger">Logout</button>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filters">
+            <form id="filterForm">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="filterStatut">
+                        <option value="">All</option>
+                        <option value="à faire">To Do</option>
+                        <option value="en cours">In Progress</option>
+                        <option value="terminée">Completed</option>
+                        <option value="en attente">Pending</option>
+                        <option value="annulée">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Priority:</label>
+                    <select id="filterPriorite">
+                        <option value="">All</option>
+                        <option value="basse">Low</option>
+                        <option value="moyenne">Medium</option>
+                        <option value="haute">High</option>
+                        <option value="critique">Critical</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Search:</label>
+                    <input type="text" id="filterRecherche" placeholder="Title or description...">
+                </div>
+
+                <div class="filter-group">
+                    <label>Sort by:</label>
+                    <select id="filterTri">
+                        <option value="dateCreation">Creation Date</option>
+                        <option value="echeance">Deadline</option>
+                        <option value="priorite">Priority</option>
+                        <option value="titre">Title</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Order:</label>
+                    <select id="filterOrdre">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="button" id="clearFilters" class="btn btn-secondary">Clear</button>
+            </form>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Tasks Container -->
+        <div id="tasksContainer" class="tasks-container"></div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="pagination hidden">
+            <button id="prevPage" class="btn btn-secondary">Previous</button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button id="nextPage" class="btn btn-secondary">Next</button>
+        </div>
+    </div>
+
+    <!-- Task Form Modal -->
+    <div id="taskModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">New Task</h2>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+
+                <div class="form-group">
+                    <label for="titre">Title *</label>
+                    <input type="text" id="titre" required minlength="3" maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" rows="4" maxlength="1000"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="statut">Status *</label>
+                        <select id="statut" required>
+                            <option value="à faire">To Do</option>
+                            <option value="en cours">In Progress</option>
+                            <option value="terminée">Completed</option>
+                            <option value="en attente">Pending</option>
+                            <option value="annulée">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="priorite">Priority *</label>
+                        <select id="priorite" required>
+                            <option value="basse">Low</option>
+                            <option value="moyenne" selected>Medium</option>
+                            <option value="haute">High</option>
+                            <option value="critique">Critical</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="echeance">Deadline</label>
+                    <input type="datetime-local" id="echeance">
+                </div>
+
+                <div class="form-group">
+                    <label for="categorie">Category</label>
+                    <input type="text" id="categorie" maxlength="30">
+                </div>
+
+                <div class="form-group">
+                    <label for="etiquettes">Tags (comma separated)</label>
+                    <input type="text" id="etiquettes" placeholder="work, urgent, personal">
+                </div>
+
+                <h3>Author *</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="auteurNom">Last Name</label>
+                        <input type="text" id="auteurNom" required minlength="2" maxlength="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="auteurPrenom">First Name</label>
+                        <input type="text" id="auteurPrenom" required minlength="2" maxlength="50">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="auteurEmail">Email</label>
+                    <input type="email" id="auteurEmail" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="detailModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <span class="close" id="closeDetail">&times;</span>
+            <div id="taskDetail"></div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="statsModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" id="closeStats">&times;</span>
+            <h2>Statistics</h2>
+            <div id="statsContent"></div>
+        </div>
+    </div>
+
+    <div id="trashModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <span class="close" id="closeTrash">&times;</span>
+            <h2>Trash</h2>
+            <div id="trashContainer" class="tasks-container"></div>
+            <div id="trashPagination" class="pagination hidden">
+                <button id="trashPrevPage" class="btn btn-secondary">Previous</button>
+                <span id="trashPageInfo">Page 1 of 1</span>
+                <button id="trashNextPage" class="btn btn-secondary">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button id="themeToggle" class="theme-toggle" title="Toggle Dark Mode">
+        🌙
+    </button>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
