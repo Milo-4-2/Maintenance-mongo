@@ -408,7 +408,22 @@ exports.getSubmitted = asyncHandler(async (req, res) => {
     })
         .sort({ submittedAt: -1 })
         .skip(skip)
-        .limit(limitNum)});
+        .limit(limitNum);
+
+    const total = await Task.countDocuments({
+        deleted: false,
+        submitted: true
+    });
+
+    res.status(200).json({
+        success: true,
+        count: tasks.length,
+        total,
+        page: pageNum,
+        pages: Math.ceil(total / limitNum),
+        data: tasks
+    });
+});
 
 // @desc    Unsubmit task (recover from submitted)
 // @route   PATCH /api/tasks/:id/unsubmit

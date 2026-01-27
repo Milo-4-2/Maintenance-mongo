@@ -373,7 +373,6 @@ function initializeEventListeners() {
         submittedPrevPage.addEventListener('click', () => {
             if (currentSubmittedPage > 1) {
                 currentSubmittedPage--;
-                loadSubmitted();
             }
         });
     }
@@ -943,10 +942,7 @@ function renderTaskDetail(task) {
                         <span class="detail-value">${escapeHtml(task.categorie)}</span>
                     </div>
                 ` : ''}
-                <div class="detail-item">
-                    <span class="detail-label">Progress</span>
-                    <span class="detail-value">${task.progression || 0}%</span>
-                </div>
+               
             </div>
             
             ${task.description ? `
