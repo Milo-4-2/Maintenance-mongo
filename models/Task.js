@@ -160,6 +160,19 @@ const taskSchema = new mongoose.Schema({
             message: 'Maximum 50 commentaires par tâche'
         }
     },
+    deleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {
+        type: Date
+    },
+    deletedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    submitted: {
+},
     historique: [historiqueSchema],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -173,6 +186,20 @@ const taskSchema = new mongoose.Schema({
     deletedAt: {
         type: Date
     }
+},{ deletedAt: {
+    type: Date
+},
+submitted: {
+    type: Boolean,
+default: false
+},
+submittedAt: {
+    type: Date
+},
+submittedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+}
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

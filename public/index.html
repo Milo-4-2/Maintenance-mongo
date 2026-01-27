@@ -82,6 +82,7 @@
             <div class="header-actions">
                 <span id="userInfo" class="user-info"></span>
                 <button id="statsBtn" class="btn btn-secondary">Statistics</button>
+                <button id="submittedBtn" class="btn btn-secondary">Submitted</button>
                 <button id="trashBtn" class="btn btn-secondary">Trash</button>
                 <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
                 <button id="newTaskBtn" class="btn btn-primary">New Task</button>
@@ -268,6 +269,18 @@
                 <button id="trashPrevPage" class="btn btn-secondary">Previous</button>
                 <span id="trashPageInfo">Page 1 of 1</span>
                 <button id="trashNextPage" class="btn btn-secondary">Next</button>
+            </div>
+        </div>
+    </div>
+    <div id="submittedModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <span class="close" id="closeSubmitted">&times;</span>
+            <h2>Submitted Tasks</h2>
+            <div id="submittedContainer" class="tasks-container"></div>
+            <div id="submittedPagination" class="pagination hidden">
+                <button id="submittedPrevPage" class="btn btn-secondary">Previous</button>
+                <span id="submittedPageInfo">Page 1 of 1</span>
+                <button id="submittedNextPage" class="btn btn-secondary">Next</button>
             </div>
         </div>
     </div>

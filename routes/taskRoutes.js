@@ -16,7 +16,10 @@ const {
     getStats,
     getTrash,
     restoreTask,
-    permanentDelete
+    permanentDelete,
+    submitTask,
+    getSubmitted,
+    unsubmitTask
 } = require('../controllers/taskController');
 
 // Stats route (must be before /:id)
@@ -26,6 +29,9 @@ router.get('/stats', protect, getStats);
 router.get('/trash', protect, getTrash);
 router.patch('/:id/restore', protect, validateObjectId, restoreTask);
 router.delete('/:id/permanent', protect, validateObjectId, permanentDelete);
+router.get('/submitted', protect, getSubmitted);
+router.post('/:id/submit', protect, validateObjectId, submitTask);
+router.patch('/:id/unsubmit', protect, validateObjectId, unsubmitTask);
 
 // Main task routes
 router.route('/')

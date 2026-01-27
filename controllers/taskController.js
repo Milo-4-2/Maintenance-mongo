@@ -22,11 +22,11 @@ exports.getTasks = asyncHandler(async (req, res) => {
         limit = 10
     } = req.query;
 
-    // Build filter object - only show user's non-deleted tasks
+    // Build filter object - show ALL non-deleted, non-submitted tasks
     const filter = {
-        deleted: false
+        deleted: false,
+        submitted: false
     };
-
 
     if (statut) filter.statut = statut;
     if (priorite) filter.priorite = priorite;
@@ -116,6 +116,7 @@ exports.updateTask = asyncHandler(async (req, res, next) => {
         _id: req.params.id,
         deleted: false
     });
+
     if (!task) {
         return next(new ApiError(404, 'Task not found'));
     }
@@ -137,12 +138,11 @@ exports.updateTask = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc    Soft delete task (move to trash)
+// @desc    Soft delete task (move to trash) - Anyone can delete, track who deleted
 // @route   DELETE /api/tasks/:id
 exports.deleteTask = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: false
     });
 
@@ -152,6 +152,7 @@ exports.deleteTask = asyncHandler(async (req, res, next) => {
 
     task.deleted = true;
     task.deletedAt = new Date();
+    task.deletedBy = req.user.id;  // Track who deleted it
     await task.save();
 
     res.status(200).json({
@@ -167,6 +168,7 @@ exports.addSubtask = asyncHandler(async (req, res, next) => {
         _id: req.params.id,
         deleted: false
     });
+
     if (!task) {
         return next(new ApiError(404, 'Task not found'));
     }
@@ -185,7 +187,6 @@ exports.addSubtask = asyncHandler(async (req, res, next) => {
 exports.updateSubtask = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: false
     });
 
@@ -212,7 +213,6 @@ exports.updateSubtask = asyncHandler(async (req, res, next) => {
 exports.deleteSubtask = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: false
     });
 
@@ -234,7 +234,6 @@ exports.deleteSubtask = asyncHandler(async (req, res, next) => {
 exports.addComment = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: false
     });
 
@@ -256,7 +255,6 @@ exports.addComment = asyncHandler(async (req, res, next) => {
 exports.deleteComment = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: false
     });
 
@@ -273,24 +271,32 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc    Get deleted tasks (trash)
+// @desc    Get deleted tasks (trash) - Anyone can view trash
 // @route   GET /api/tasks/trash
 exports.getTrash = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
+    const {
+        page = 1,
+        limit = 10
+    } = req.query;
+
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
 
-    const filter = { createdBy: req.user.id, deleted: true };
-
-    const tasks = await Task.find(filter)
+    const tasks = await Task.find({
+        deleted: true
+    })
         .sort({ deletedAt: -1 })
-        .skip((pageNum - 1) * limitNum)
+        .skip(skip)
         .limit(limitNum);
 
-    const total = await Task.countDocuments(filter);
+    const total = await Task.countDocuments({
+        deleted: true
+    });
 
     res.status(200).json({
         success: true,
+        count: tasks.length,
         total,
         page: pageNum,
         pages: Math.ceil(total / limitNum),
@@ -298,14 +304,11 @@ exports.getTrash = asyncHandler(async (req, res) => {
     });
 });
 
-
-
-// @desc    Restore task from trash
+// @desc    Restore task from trash - Only deleter or creator can restore
 // @route   PATCH /api/tasks/:id/restore
 exports.restoreTask = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: true
     });
 
@@ -313,8 +316,18 @@ exports.restoreTask = asyncHandler(async (req, res, next) => {
         return next(new ApiError(404, 'Task not found in trash'));
     }
 
+    // Check if user is the one who deleted it or the creator
+    const canRestore =
+        (task.deletedBy && task.deletedBy.toString() === req.user.id) ||
+        (task.createdBy && task.createdBy.toString() === req.user.id);
+
+    if (!canRestore) {
+        return next(new ApiError(403, 'Only the person who deleted this task or its creator can restore it'));
+    }
+
     task.deleted = false;
     task.deletedAt = null;
+    task.deletedBy = null;
     await task.save();
 
     res.status(200).json({
@@ -323,17 +336,25 @@ exports.restoreTask = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc    Permanently delete task
+// @desc    Permanently delete task - Only deleter or creator can permanently delete
 // @route   DELETE /api/tasks/:id/permanent
 exports.permanentDelete = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        createdBy: req.user.id,
         deleted: true
     });
 
     if (!task) {
         return next(new ApiError(404, 'Task not found in trash'));
+    }
+
+    // Check if user is the one who deleted it or the creator
+    const canDelete =
+        (task.deletedBy && task.deletedBy.toString() === req.user.id) ||
+        (task.createdBy && task.createdBy.toString() === req.user.id);
+
+    if (!canDelete) {
+        return next(new ApiError(403, 'Only the person who deleted this task or its creator can permanently delete it'));
     }
 
     await task.deleteOne();
@@ -344,13 +365,83 @@ exports.permanentDelete = asyncHandler(async (req, res, next) => {
     });
 });
 
+// @desc    Submit task
+// @route   POST /api/tasks/:id/submit
+exports.submitTask = asyncHandler(async (req, res, next) => {
+    const task = await Task.findOne({
+        _id: req.params.id,
+        deleted: false,
+        submitted: false
+    });
+
+    if (!task) {
+        return next(new ApiError(404, 'Task not found or already submitted'));
+    }
+
+    task.submitted = true;
+    task.submittedAt = new Date();
+    task.submittedBy = req.user.id;
+    task.statut = 'terminée'; // Auto-mark as completed
+    await task.save();
+
+    res.status(200).json({
+        success: true,
+        data: task
+    });
+});
+
+// @desc    Get submitted tasks
+// @route   GET /api/tasks/submitted
+exports.getSubmitted = asyncHandler(async (req, res) => {
+    const {
+        page = 1,
+        limit = 10
+    } = req.query;
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const tasks = await Task.find({
+        deleted: false,
+        submitted: true
+    })
+        .sort({ submittedAt: -1 })
+        .skip(skip)
+        .limit(limitNum)});
+
+// @desc    Unsubmit task (recover from submitted)
+// @route   PATCH /api/tasks/:id/unsubmit
+exports.unsubmitTask = asyncHandler(async (req, res, next) => {
+    const task = await Task.findOne({
+        _id: req.params.id,
+        deleted: false,
+        submitted: true
+    });
+
+    if (!task) {
+        return next(new ApiError(404, 'Task not found in submitted'));
+    }
+
+    task.submitted = false;
+    task.submittedAt = null;
+    task.submittedBy = null;
+    await task.save();
+
+    res.status(200).json({
+        success: true,
+        data: task
+    });
+});
+
 // @desc    Get task statistics
 // @route   GET /api/tasks/stats
 exports.getStats = asyncHandler(async (req, res) => {
     const stats = await Task.aggregate([
         {
             $match: {
-                deleted: false
+                deleted: false,
+                submitted: false
             }
         },
         {

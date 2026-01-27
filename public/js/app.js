@@ -9,8 +9,14 @@ let currentFilters = {};
 let currentTaskId = null;
 let currentUser = null;
 let authToken = localStorage.getItem('token') || null;
+
+// Trash state
 let currentTrashPage = 1;
 let totalTrashPages = 1;
+
+// Submitted state
+let currentSubmittedPage = 1;
+let totalSubmittedPages = 1;
 
 // Theme Management
 let currentTheme = localStorage.getItem('theme') || 'light';
@@ -309,6 +315,15 @@ function initializeEventListeners() {
             loadStats();
         });
     }
+
+    const submittedBtn = document.getElementById('submittedBtn');
+    if (submittedBtn) {
+        submittedBtn.addEventListener('click', () => {
+            currentSubmittedPage = 1;
+            loadSubmitted();
+        });
+    }
+
     const trashBtn = document.getElementById('trashBtn');
     if (trashBtn) {
         trashBtn.addEventListener('click', () => {
@@ -317,6 +332,21 @@ function initializeEventListeners() {
         });
     }
 
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            toggleTheme();
+        });
+    }
+
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            exportTasks();
+        });
+    }
+
+    // Trash pagination
     const trashPrevPage = document.getElementById('trashPrevPage');
     if (trashPrevPage) {
         trashPrevPage.addEventListener('click', () => {
@@ -337,17 +367,24 @@ function initializeEventListeners() {
         });
     }
 
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            toggleTheme();
+    // Submitted pagination
+    const submittedPrevPage = document.getElementById('submittedPrevPage');
+    if (submittedPrevPage) {
+        submittedPrevPage.addEventListener('click', () => {
+            if (currentSubmittedPage > 1) {
+                currentSubmittedPage--;
+                loadSubmitted();
+            }
         });
     }
 
-    const exportBtn = document.getElementById('exportBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            exportTasks();
+    const submittedNextPage = document.getElementById('submittedNextPage');
+    if (submittedNextPage) {
+        submittedNextPage.addEventListener('click', () => {
+            if (currentSubmittedPage < totalSubmittedPages) {
+                currentSubmittedPage++;
+                loadSubmitted();
+            }
         });
     }
 
@@ -437,6 +474,8 @@ function createTaskCard(task) {
     const subtaskCount = task.sousTaches ? task.sousTaches.length : 0;
     const completedSubtasks = task.sousTaches ? task.sousTaches.filter(st => st.statut === 'terminée').length : 0;
 
+    const isOwner = currentUser && task.createdBy === currentUser.id;
+
     card.innerHTML = `
         <div class="task-card-header">
             <div>
@@ -460,6 +499,7 @@ function createTaskCard(task) {
                 ${task.echeance ? `<div>Deadline: ${echeance}</div>` : ''}
             </div>
             <div class="task-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-success" onclick="submitTask('${task._id}')">Submit</button>
                 <button class="btn btn-primary" onclick="editTask('${task._id}')">Edit</button>
                 <button class="btn btn-danger" onclick="deleteTask('${task._id}')">Delete</button>
             </div>
@@ -467,6 +507,346 @@ function createTaskCard(task) {
     `;
 
     return card;
+}
+
+// Submit Task
+async function submitTask(taskId) {
+    if (!confirm('Submit this task? It will be moved to Submitted section.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/${taskId}/submit`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showSuccess('Task submitted successfully!');
+            loadTasks();
+        } else {
+            showError('Error submitting task');
+        }
+    } catch (error) {
+        console.error('Error submitting task:', error);
+        showError('Unable to submit task');
+    }
+}
+
+// Load Submitted Tasks
+async function loadSubmitted() {
+    try {
+        const response = await fetch(`${API_URL}/submitted?page=${currentSubmittedPage}&limit=9`, {
+            headers: getHeaders()
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            totalSubmittedPages = data.pages;
+            renderSubmitted(data.data);
+            updateSubmittedPagination();
+            document.getElementById('submittedModal').classList.remove('hidden');
+        } else {
+            showError('Error loading submitted tasks');
+        }
+    } catch (error) {
+        console.error('Error loading submitted tasks:', error);
+        showError('Unable to load submitted tasks');
+    }
+}
+
+// Render Submitted Tasks
+function renderSubmitted(tasks) {
+    const submittedContainer = document.getElementById('submittedContainer');
+    submittedContainer.innerHTML = '';
+
+    if (tasks.length === 0) {
+        submittedContainer.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--secondary);">
+                <h3>No submitted tasks</h3>
+                <p>Submit tasks to see them here</p>
+            </div>
+        `;
+        return;
+    }
+
+    tasks.forEach(task => {
+        const card = createSubmittedCard(task);
+        submittedContainer.appendChild(card);
+    });
+}
+
+// Create Submitted Card
+function createSubmittedCard(task) {
+    const card = document.createElement('div');
+    card.className = 'task-card';
+
+    const prioriteClass = `priorite-${task.priorite}`;
+    const submittedAt = task.submittedAt ? new Date(task.submittedAt).toLocaleDateString('en-US') : 'Unknown';
+
+    card.innerHTML = `
+        <div class="task-card-header">
+            <div>
+                <h3 class="task-title">${escapeHtml(task.titre)}</h3>
+                <span class="badge badge-statut">${STATUS_LABELS[task.statut]}</span>
+                <span class="badge badge-priorite ${prioriteClass}">${PRIORITY_LABELS[task.priorite]}</span>
+            </div>
+        </div>
+        
+        ${task.description ? `<p class="task-description">${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</p>` : ''}
+        
+        <div class="task-footer">
+            <div class="task-date">
+                <div>Submitted: ${submittedAt}</div>
+                <div style="font-size: 12px; color: var(--secondary);">By: ${escapeHtml(task.auteur.prenom)} ${escapeHtml(task.auteur.nom)}</div>
+            </div>
+            <div class="task-actions">
+                <button class="btn btn-info" onclick="viewSubmittedDetail('${task._id}')">View</button>
+                <button class="btn btn-warning" onclick="unsubmitTask('${task._id}')">Unsubmit</button>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+// View Submitted Task Detail
+async function viewSubmittedDetail(taskId) {
+    try {
+        const response = await fetch(`${API_URL}/${taskId}`, {
+            headers: getHeaders()
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            renderTaskDetail(data.data);
+            document.getElementById('submittedModal').classList.add('hidden');
+            detailModal.classList.remove('hidden');
+        } else {
+            showError('Error loading task details');
+        }
+    } catch (error) {
+        console.error('Error loading task detail:', error);
+        showError('Unable to load details');
+    }
+}
+
+// Unsubmit Task
+async function unsubmitTask(taskId) {
+    if (!confirm('Unsubmit this task? It will be moved back to active tasks.')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${taskId}/unsubmit`, {
+            method: 'PATCH',
+            headers: getHeaders()
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showSuccess('Task unsubmitted successfully!');
+            loadSubmitted();
+            loadTasks();
+        } else {
+            showError('Error unsubmitting task');
+        }
+    } catch (error) {
+        console.error('Error unsubmitting task:', error);
+        showError('Unable to unsubmit task');
+    }
+}
+
+// Update Submitted Pagination
+function updateSubmittedPagination() {
+    const submittedPagination = document.getElementById('submittedPagination');
+    const submittedPageInfo = document.getElementById('submittedPageInfo');
+    const submittedPrevPage = document.getElementById('submittedPrevPage');
+    const submittedNextPage = document.getElementById('submittedNextPage');
+
+    if (submittedPageInfo) {
+        submittedPageInfo.textContent = `Page ${currentSubmittedPage} of ${totalSubmittedPages}`;
+    }
+
+    if (submittedPrevPage) {
+        submittedPrevPage.disabled = currentSubmittedPage === 1;
+    }
+
+    if (submittedNextPage) {
+        submittedNextPage.disabled = currentSubmittedPage === totalSubmittedPages;
+    }
+
+    if (submittedPagination) {
+        submittedPagination.classList.remove('hidden');
+    }
+}
+
+// Load Trash
+async function loadTrash() {
+    try {
+        const response = await fetch(`${API_URL}/trash?page=${currentTrashPage}&limit=9`, {
+            headers: getHeaders()
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            totalTrashPages = data.pages;
+            renderTrash(data.data);
+            updateTrashPagination();
+            document.getElementById('trashModal').classList.remove('hidden');
+        } else {
+            showError('Error loading trash');
+        }
+    } catch (error) {
+        console.error('Error loading trash:', error);
+        showError('Unable to load trash');
+    }
+}
+
+// Render Trash
+function renderTrash(tasks) {
+    const trashContainer = document.getElementById('trashContainer');
+    trashContainer.innerHTML = '';
+
+    if (tasks.length === 0) {
+        trashContainer.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--secondary);">
+                <h3>Trash is empty</h3>
+                <p>No deleted tasks</p>
+            </div>
+        `;
+        return;
+    }
+
+    tasks.forEach(task => {
+        const card = createTrashCard(task);
+        trashContainer.appendChild(card);
+    });
+}
+
+// Create Trash Card
+function createTrashCard(task) {
+    const card = document.createElement('div');
+    card.className = 'task-card';
+
+    const prioriteClass = `priorite-${task.priorite}`;
+    const deletedAt = task.deletedAt ? new Date(task.deletedAt).toLocaleDateString('en-US') : 'Unknown';
+    let deletedByText = 'Unknown';
+    if (task.deletedBy) {
+        // If it's current user
+        if (currentUser && task.deletedBy === currentUser.id) {
+            deletedByText = 'You';
+        } else {
+            deletedByText = 'Another user';
+        }
+    }
+    const isOwner = currentUser && task.createdBy === currentUser.id;
+
+    card.innerHTML = `
+        <div class="task-card-header">
+            <div>
+                <h3 class="task-title">${escapeHtml(task.titre)}</h3>
+                <span class="badge badge-statut">${STATUS_LABELS[task.statut]}</span>
+                <span class="badge badge-priorite ${prioriteClass}">${PRIORITY_LABELS[task.priorite]}</span>
+            </div>
+        </div>
+        
+        ${task.description ? `<p class="task-description">${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</p>` : ''}
+        
+        <div class="task-footer">
+            <div class="task-date">
+                 <div class="task-date">
+            <div>Deleted: ${deletedAt}</div>
+            <div style="font-size: 12px; color: var(--secondary);">Created by: ${escapeHtml(task.auteur.prenom)} ${escapeHtml(task.auteur.nom)}</div>
+            <div style="font-size: 12px; color: var(--danger); margin-top: 3px;">🗑️ Deleted by: ${deletedByText}</div>
+        </div>
+            </div>
+            <div class="task-actions">
+                ${isOwner ? `
+                    <button class="btn btn-success" onclick="restoreTask('${task._id}')">Restore</button>
+                    <button class="btn btn-danger" onclick="permanentlyDeleteTask('${task._id}')">Delete Forever</button>
+                ` : `
+                    <span style="font-size: 12px; color: var(--secondary);">Only creator can restore/delete</span>
+                `}
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+// Restore Task
+async function restoreTask(taskId) {
+    if (!confirm('Restore this task?')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${taskId}/restore`, {
+            method: 'PATCH',
+            headers: getHeaders()
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showSuccess('Task restored successfully!');
+            loadTrash();
+            loadTasks();
+        } else {
+            showError('Error restoring task');
+        }
+    } catch (error) {
+        console.error('Error restoring task:', error);
+        showError('Unable to restore task');
+    }
+}
+
+// Permanently Delete Task
+async function permanentlyDeleteTask(taskId) {
+    if (!confirm('⚠️ PERMANENTLY DELETE this task? This cannot be undone!')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${taskId}/permanent`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showSuccess('Task permanently deleted!');
+            loadTrash();
+        } else {
+            showError('Error deleting task');
+        }
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        showError('Unable to delete task');
+    }
+}
+
+// Update Trash Pagination
+function updateTrashPagination() {
+    const trashPagination = document.getElementById('trashPagination');
+    const trashPageInfo = document.getElementById('trashPageInfo');
+    const trashPrevPage = document.getElementById('trashPrevPage');
+    const trashNextPage = document.getElementById('trashNextPage');
+
+    if (trashPageInfo) {
+        trashPageInfo.textContent = `Page ${currentTrashPage} of ${totalTrashPages}`;
+    }
+
+    if (trashPrevPage) {
+        trashPrevPage.disabled = currentTrashPage === 1;
+    }
+
+    if (trashNextPage) {
+        trashNextPage.disabled = currentTrashPage === totalTrashPages;
+    }
+
+    if (trashPagination) {
+        trashPagination.classList.remove('hidden');
+    }
 }
 
 // Open Task Detail
@@ -733,11 +1113,12 @@ async function deleteTask(taskId) {
             showSuccess('Task deleted successfully!');
             loadTasks();
         } else {
-            showError('Error deleting task');
+            showError(data.error || 'Error deleting task');
+            console.error('Delete failed:', data);
         }
     } catch (error) {
         console.error('Error deleting task:', error);
-        showError('Unable to delete task');
+        showError('Unable to delete task: ' + error.message);
     }
 }
 
@@ -976,159 +1357,7 @@ async function exportTasks() {
         hideLoading();
     }
 }
-async function loadTrash() {
-    try {
-        const response = await fetch(`${API_URL}/trash?page=${currentTrashPage}&limit=9`, {
-            headers: getHeaders()
-        });
-        const data = await response.json();
 
-        if (data.success) {
-            totalTrashPages = data.pages;
-            renderTrash(data.data);
-            updateTrashPagination();
-            document.getElementById('trashModal').classList.remove('hidden');
-        } else {
-            showError('Error loading trash');
-        }
-    } catch (error) {
-        console.error('Error loading trash:', error);
-        showError('Unable to load trash');
-    }
-}
-
-// Render Trash
-function renderTrash(tasks) {
-    const trashContainer = document.getElementById('trashContainer');
-    trashContainer.innerHTML = '';
-
-    if (tasks.length === 0) {
-        trashContainer.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--secondary);">
-                <h3>Trash is empty</h3>
-                <p>No deleted tasks</p>
-            </div>
-        `;
-        return;
-    }
-
-    tasks.forEach(task => {
-        const card = createTrashCard(task);
-        trashContainer.appendChild(card);
-    });
-}
-
-// Create Trash Card
-function createTrashCard(task) {
-    const card = document.createElement('div');
-    card.className = 'task-card';
-
-    const prioriteClass = `priorite-${task.priorite}`;
-    const deletedAt = task.deletedAt ? new Date(task.deletedAt).toLocaleDateString('en-US') : 'Unknown';
-    const isOwner = currentUser && task.createdBy === currentUser.id;
-
-    card.innerHTML = `
-        <div class="task-card-header">
-            <div>
-                <h3 class="task-title">${escapeHtml(task.titre)}</h3>
-                <span class="badge badge-statut">${STATUS_LABELS[task.statut]}</span>
-                <span class="badge badge-priorite ${prioriteClass}">${PRIORITY_LABELS[task.priorite]}</span>
-            </div>
-        </div>
-        
-        ${task.description ? `<p class="task-description">${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</p>` : ''}
-        
-        <div class="task-footer">
-            <div class="task-date">
-                <div>Deleted: ${deletedAt}</div>
-                <div style="font-size: 12px; color: var(--secondary);">By: ${escapeHtml(task.auteur.prenom)} ${escapeHtml(task.auteur.nom)}</div>
-            </div>
-            <div class="task-actions">
-                ${isOwner ? `
-                    <button class="btn btn-success" onclick="restoreTask('${task._id}')">Restore</button>
-                    <button class="btn btn-danger" onclick="permanentlyDeleteTask('${task._id}')">Delete Forever</button>
-                ` : `
-                    <span style="font-size: 12px; color: var(--secondary);">Only creator can restore/delete</span>
-                `}
-            </div>
-        </div>
-    `;
-
-    return card;
-}
-
-// Restore Task
-async function restoreTask(taskId) {
-    if (!confirm('Restore this task?')) return;
-
-    try {
-        const response = await fetch(`${API_URL}/${taskId}/restore`, {
-            method: 'PATCH',
-            headers: getHeaders()
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showSuccess('Task restored successfully!');
-            loadTrash();
-            loadTasks(); // Refresh main task list
-        } else {
-            showError('Error restoring task');
-        }
-    } catch (error) {
-        console.error('Error restoring task:', error);
-        showError('Unable to restore task');
-    }
-}
-
-// Permanently Delete Task
-async function permanentlyDeleteTask(taskId) {
-    if (!confirm('⚠️ PERMANENTLY DELETE this task? This cannot be undone!')) return;
-
-    try {
-        const response = await fetch(`${API_URL}/${taskId}/permanent`, {
-            method: 'DELETE',
-            headers: getHeaders()
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showSuccess('Task permanently deleted!');
-            loadTrash();
-        } else {
-            showError('Error deleting task');
-        }
-    } catch (error) {
-        console.error('Error deleting task:', error);
-        showError('Unable to delete task');
-    }
-}
-
-// Update Trash Pagination
-function updateTrashPagination() {
-    const trashPagination = document.getElementById('trashPagination');
-    const trashPageInfo = document.getElementById('trashPageInfo');
-    const trashPrevPage = document.getElementById('trashPrevPage');
-    const trashNextPage = document.getElementById('trashNextPage');
-
-    if (trashPageInfo) {
-        trashPageInfo.textContent = `Page ${currentTrashPage} of ${totalTrashPages}`;
-    }
-
-    if (trashPrevPage) {
-        trashPrevPage.disabled = currentTrashPage === 1;
-    }
-
-    if (trashNextPage) {
-        trashNextPage.disabled = currentTrashPage === totalTrashPages;
-    }
-
-    if (trashPagination) {
-        trashPagination.classList.remove('hidden');
-    }
-}
 // Update Pagination
 function updatePagination() {
     document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
@@ -1158,11 +1387,11 @@ function hideLoading() {
 
 // Notifications
 function showSuccess(message) {
-    alert(' ' + message);
+    alert('✅ ' + message);
 }
 
 function showError(message) {
-    alert(' ' + message);
+    alert('❌ ' + message);
 }
 
 // Utility Functions
