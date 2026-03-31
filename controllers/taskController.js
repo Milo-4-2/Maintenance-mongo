@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+const User = require('../models/User');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 
@@ -24,8 +25,8 @@ exports.getTasks = asyncHandler(async (req, res) => {
 
     // Build filter object - show ALL non-deleted, non-submitted tasks
     const filter = {
-        deleted: false,
-        submitted: false
+        deleted: { $ne: true },
+        submitted: { $ne: true }
     };
 
     if (statut) filter.statut = statut;
@@ -370,8 +371,8 @@ exports.permanentDelete = asyncHandler(async (req, res, next) => {
 exports.submitTask = asyncHandler(async (req, res, next) => {
     const task = await Task.findOne({
         _id: req.params.id,
-        deleted: false,
-        submitted: false
+        deleted: { $ne: true },
+        submitted: { $ne: true }
     });
 
     if (!task) {
@@ -455,8 +456,8 @@ exports.getStats = asyncHandler(async (req, res) => {
     const stats = await Task.aggregate([
         {
             $match: {
-                deleted: false,
-                submitted: false
+                deleted: { $ne: true },
+                submitted: { $ne: true }
             }
         },
         {

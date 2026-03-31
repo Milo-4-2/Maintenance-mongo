@@ -402,7 +402,7 @@ function getHeaders() {
     };
 }
 
-// Load Tasks
+// Load Tasks - FIX: Added Cache Buster
 async function loadTasks() {
     showLoading();
 
@@ -410,6 +410,7 @@ async function loadTasks() {
         const params = new URLSearchParams({
             page: currentPage,
             limit: 9,
+            _t: Date.now(), // FIX: Prevents 304 errors
             ...currentFilters
         });
 
@@ -473,14 +474,13 @@ function createTaskCard(task) {
     const subtaskCount = task.sousTaches ? task.sousTaches.length : 0;
     const completedSubtasks = task.sousTaches ? task.sousTaches.filter(st => st.statut === 'terminée').length : 0;
 
-    const isOwner = currentUser && task.createdBy === currentUser.id;
-
     card.innerHTML = `
         <div class="task-card-header">
             <div>
                 <h3 class="task-title">${escapeHtml(task.titre)}</h3>
                 <span class="badge badge-statut">${STATUS_LABELS[task.statut]}</span>
                 <span class="badge badge-priorite ${prioriteClass}">${PRIORITY_LABELS[task.priorite]}</span>
+                ${task.submitted ? '<span class="badge" style="background: var(--success); color: white;">✓ Submitted</span>' : ''}
             </div>
         </div>
         
@@ -538,7 +538,7 @@ async function submitTask(taskId) {
 async function loadSubmitted() {
     try {
         const response = await fetch(`${API_URL}/submitted?page=${currentSubmittedPage}&limit=9`, {
-            headers: getHeaders()
+            headers: getHeaders(),
         });
         const data = await response.json();
 
@@ -997,7 +997,12 @@ function openTaskModal(task = null) {
         document.getElementById('description').value = task.description || '';
         document.getElementById('statut').value = task.statut;
         document.getElementById('priorite').value = task.priorite;
-        document.getElementById('echeance').value = task.echeance ? new Date(task.echeance).toISOString().slice(0, 16) : '';
+        const echeanceInput = document.getElementById('echeance');
+        echeanceInput.value = task.echeance ? new Date(task.echeance).toISOString().slice(0, 16) : '';
+        echeanceInput.readOnly = true;
+        echeanceInput.style.backgroundColor = '#f5f5f5';
+        echeanceInput.style.cursor = 'not-allowed';
+        echeanceInput.style.opacity = '0.7';
         document.getElementById('categorie').value = task.categorie || '';
         document.getElementById('etiquettes').value = task.etiquettes ? task.etiquettes.join(', ') : '';
         document.getElementById('auteurNom').value = task.auteur.nom;
@@ -1008,7 +1013,12 @@ function openTaskModal(task = null) {
         taskForm.reset();
         document.getElementById('taskId').value = '';
 
-        // Auto-fill author with current user
+        const echeanceInput = document.getElementById('echeance');
+        echeanceInput.readOnly = false;
+        echeanceInput.style.backgroundColor = '';
+        echeanceInput.style.cursor = '';
+        echeanceInput.style.opacity = '';
+
         if (currentUser) {
             document.getElementById('auteurNom').value = currentUser.lastName;
             document.getElementById('auteurPrenom').value = currentUser.firstName;
@@ -1024,16 +1034,23 @@ function closeTaskModal() {
     taskModal.classList.add('hidden');
     taskForm.reset();
     currentTaskId = null;
+
+    const echeanceInput = document.getElementById('echeance');
+    echeanceInput.readOnly = false;
+    echeanceInput.style.backgroundColor = '';
+    echeanceInput.style.cursor = '';
+    echeanceInput.style.opacity = '';
 }
 
-// Save Task
+// Save Task - FIX: Added Filter/Page reset
 async function saveTask() {
+    const taskId = document.getElementById('taskId').value;
+
     const formData = {
         titre: document.getElementById('titre').value,
         description: document.getElementById('description').value,
         statut: document.getElementById('statut').value,
         priorite: document.getElementById('priorite').value,
-        echeance: document.getElementById('echeance').value || null,
         categorie: document.getElementById('categorie').value,
         etiquettes: document.getElementById('etiquettes').value
             .split(',')
@@ -1046,8 +1063,11 @@ async function saveTask() {
         }
     };
 
+    if (!taskId) {
+        formData.echeance = document.getElementById('echeance').value || null;
+    }
+
     try {
-        const taskId = document.getElementById('taskId').value;
         const url = taskId ? `${API_URL}/${taskId}` : API_URL;
         const method = taskId ? 'PUT' : 'POST';
 
@@ -1062,6 +1082,11 @@ async function saveTask() {
         if (data.success) {
             showSuccess(taskId ? 'Task updated successfully!' : 'Task created successfully!');
             closeTaskModal();
+
+            // FIX: Ensure new task is visible
+            currentFilters = {};
+            currentPage = 1;
+
             loadTasks();
         } else {
             showError(data.error || 'Error saving task');
@@ -1392,6 +1417,7 @@ function showError(message) {
 
 // Utility Functions
 function escapeHtml(text) {
+    if (!text) return '';
     const map = {
         '&': '&amp;',
         '<': '&lt;',
@@ -1399,5 +1425,5 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, m => map[m]);
+    return text.toString().replace(/[&<>"']/g, m => map[m]);
 }

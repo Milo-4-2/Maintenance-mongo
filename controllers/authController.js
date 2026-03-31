@@ -108,3 +108,16 @@ exports.logout = asyncHandler(async (req, res) => {
         data: {}
     });
 });
+
+// @desc    Get all users (for task assignment)
+// @route   GET /api/auth/users
+// @access  Private
+exports.getUsers = asyncHandler(async (req, res) => {
+    const users = await User.find().select('username email firstName lastName');
+
+    res.status(200).json({
+        success: true,
+        count: users.length,
+        data: users
+    });
+});
