@@ -17,6 +17,11 @@
     --dark: #1f2937;
     --border: #e5e7eb;
     --shadow: rgba(0, 0, 0, 0.1);
+    --bg-page: #ffffff;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f3f4f6;
+    --bg-input: #ffffff;
+    --border-input: #e5e7eb;
 }
 
 body {
@@ -30,10 +35,11 @@ body {
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    background: white;
+    background: var(--bg-page);
     border-radius: 20px;
     box-shadow: 0 20px 60px var(--shadow);
     padding: 30px;
+    color: var(--dark);
 }
 
 /* Header */
@@ -139,10 +145,12 @@ body {
 .filter-group input,
 .filter-group select {
     padding: 8px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-input);
     border-radius: 6px;
     font-size: 14px;
     min-width: 150px;
+    background: var(--bg-input);
+    color: var(--dark);
 }
 
 .filter-group input:focus,
@@ -186,7 +194,7 @@ body {
 
 /* Task Card */
 .task-card {
-    background: white;
+    background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 20px;
@@ -270,7 +278,7 @@ body {
 }
 
 .tag {
-    background: var(--light);
+    background: var(--bg-elevated);
     color: var(--secondary);
     padding: 3px 10px;
     border-radius: 12px;
@@ -329,7 +337,7 @@ body {
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-surface);
     padding: 30px;
     border-radius: 16px;
     max-width: 600px;
@@ -338,6 +346,7 @@ body {
     overflow-y: auto;
     position: relative;
     animation: slideDown 0.3s;
+    color: var(--dark);
 }
 
 .modal-large {
@@ -399,11 +408,13 @@ body {
 .form-group textarea {
     width: 100%;
     padding: 10px 15px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-input);
     border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
     transition: border-color 0.3s;
+    background: var(--bg-input);
+    color: var(--dark);
 }
 
 .form-group input:focus,
@@ -461,7 +472,7 @@ body {
 
 .subtask-item,
 .comment-item {
-    background: var(--light);
+    background: var(--bg-elevated);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -503,7 +514,7 @@ body {
     font-style: italic;
     padding: 15px;
     text-align: center;
-    background: var(--light);
+    background: var(--bg-elevated);
     border-radius: 8px;
 }
 
@@ -515,7 +526,7 @@ body {
 }
 
 .stat-card {
-    background: var(--light);
+    background: var(--bg-elevated);
     padding: 20px;
     border-radius: 12px;
     text-align: center;
@@ -592,103 +603,24 @@ body {
     --dark: #f9fafb;
     --border: #374151;
     --shadow: rgba(0, 0, 0, 0.3);
+    --bg-page: #111827;
+    --bg-surface: #1f2937;
+    --bg-elevated: #374151;
+    --bg-input: #374151;
+    --border-input: #4b5563;
 }
 
 [data-theme="dark"] body {
     background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
 }
 
-[data-theme="dark"] .container {
-    background: #111827;
-    color: #f9fafb;
-}
-
-[data-theme="dark"] .header {
-    border-bottom: 2px solid var(--border);
-}
-
-[data-theme="dark"] .header h1 {
-    color: var(--dark);
-}
-
-[data-theme="dark"] .filters {
-    background: #1f2937;
-}
-
-[data-theme="dark"] .filter-group input,
-[data-theme="dark"] .filter-group select {
-    background: #374151;
-    color: #f9fafb;
-    border-color: #4b5563;
-}
-
-[data-theme="dark"] .task-card {
-    background: #1f2937;
-    border-color: #374151;
-}
-
 [data-theme="dark"] .task-card:hover {
-    border-color: var(--primary);
-    background: #374151;
+    background: var(--bg-elevated);
 }
 
-[data-theme="dark"] .task-title {
-    color: var(--dark);
-}
-
-[data-theme="dark"] .task-description {
-    color: var(--secondary);
-}
-
-[data-theme="dark"] .task-footer {
-    border-top: 1px solid var(--border);
-}
-
-[data-theme="dark"] .modal-content {
-    background: #1f2937;
-    color: #f9fafb;
-}
-
-[data-theme="dark"] .form-group input,
-[data-theme="dark"] .form-group select,
-[data-theme="dark"] .form-group textarea {
-    background: #374151;
-    color: #f9fafb;
-    border-color: #4b5563;
-}
-
-[data-theme="dark"] .form-group label {
-    color: #f9fafb;
-}
-
-[data-theme="dark"] .subtask-item,
-[data-theme="dark"] .comment-item {
-    background: #374151;
-}
-
-[data-theme="dark"] .stat-card {
-    background: #374151;
-}
-
-[data-theme="dark"] .detail-label {
-    color: #9ca3af;
-}
-
-[data-theme="dark"] .detail-value {
-    color: #f9fafb;
-}
-
-[data-theme="dark"] .tag {
-    background: #374151;
-    color: #d1d5db;
-}
-
-[data-theme="dark"] .no-items {
-    background: #374151;
-    color: #9ca3af;
-}
-
-/* Theme Toggle Button */
+/* ============================================
+   AUTHENTICATION PAGES
+   ============================================ */
 .theme-toggle {
     position: fixed;
     bottom: 30px;
@@ -736,7 +668,7 @@ body {
 }
 
 .auth-card {
-    background: white;
+    background: var(--bg-surface);
     border-radius: 20px;
     padding: 40px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -783,32 +715,10 @@ body {
     display: inline-flex;
     align-items: center;
     padding: 8px 16px;
-    background: var(--light);
+    background: var(--bg-elevated);
     border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     color: var(--dark);
     margin-right: 10px;
-}
-
-/* Dark Mode Auth Pages */
-[data-theme="dark"] .auth-card {
-    background: #1f2937;
-}
-
-[data-theme="dark"] .auth-card h1 {
-    color: var(--primary);
-}
-
-[data-theme="dark"] .auth-card h2 {
-    color: #f9fafb;
-}
-
-[data-theme="dark"] .auth-switch {
-    color: #9ca3af;
-}
-
-[data-theme="dark"] .user-info {
-    background: #374151;
-    color: #f9fafb;
 }

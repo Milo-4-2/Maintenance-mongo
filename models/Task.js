@@ -1,6 +1,15 @@
+// ============================================
+// Task Model (Data Layer)
+// Defines the Mongoose schema for tasks, including
+// embedded sub-schemas for subtasks, comments,
+// and modification history.
+// Only imported by taskRepository (clean architecture).
+// ============================================
+
 const mongoose = require('mongoose');
 
-// Sub-schema for subtasks
+// --- Sub-schema: Subtask ---
+// Each task can contain up to 20 subtasks
 const subtaskSchema = new mongoose.Schema({
     titre: {
         type: String,
@@ -11,15 +20,14 @@ const subtaskSchema = new mongoose.Schema({
     },
     statut: {
         type: String,
-        enum: ['à faire', 'en cours', 'terminée'],
+        enum: ['à faire', 'en cours', 'terminée'], // to do, in progress, completed
         default: 'à faire'
     },
-    echeance: {
-        type: Date
-    }
+    echeance: { type: Date } // optional deadline
 }, { timestamps: true });
 
-// Sub-schema for comments
+// --- Sub-schema: Comment ---
+// Each task can hold up to 50 comments
 const commentaireSchema = new mongoose.Schema({
     auteur: {
         type: String,
@@ -35,31 +43,27 @@ const commentaireSchema = new mongoose.Schema({
         minlength: [1, 'Le commentaire ne peut pas être vide'],
         maxlength: [500, 'Le commentaire ne peut pas dépasser 500 caractères']
     },
-    date: {
-        type: Date,
-        default: Date.now
-    }
+    date: { type: Date, default: Date.now }
 });
 
-// Sub-schema for modification history
+// --- Sub-schema: History entry ---
+// Tracks creation, modification, and deletion events
 const historiqueSchema = new mongoose.Schema({
     action: {
         type: String,
         required: true,
-        enum: ['création', 'modification', 'suppression']
+        enum: ['création', 'modification', 'suppression'] // creation, modification, deletion
     },
-    date: {
-        type: Date,
-        default: Date.now
-    },
+    date: { type: Date, default: Date.now },
     details: {
         type: String,
         maxlength: [200, 'Les détails ne peuvent pas dépasser 200 caractères']
     }
 });
 
-// Main Task schema
+// --- Main Task Schema ---
 const taskSchema = new mongoose.Schema({
+    // --- Core Fields ---
     titre: {
         type: String,
         required: [true, 'Le titre est requis'],
@@ -72,6 +76,7 @@ const taskSchema = new mongoose.Schema({
         trim: true,
         maxlength: [1000, 'La description ne peut pas dépasser 1000 caractères']
     },
+    // Status: à faire (to do), en cours (in progress), terminée (done), en attente (pending), annulée (cancelled)
     statut: {
         type: String,
         required: true,
@@ -81,6 +86,7 @@ const taskSchema = new mongoose.Schema({
         },
         default: 'à faire'
     },
+    // Priority: basse (low), moyenne (medium), haute (high), critique (critical)
     priorite: {
         type: String,
         required: true,
@@ -90,11 +96,13 @@ const taskSchema = new mongoose.Schema({
         },
         default: 'moyenne'
     },
+    // Creation date — immutable once set
     dateCreation: {
         type: Date,
         default: Date.now,
         immutable: true
     },
+    // Deadline — must be after creation date
     echeance: {
         type: Date,
         validate: {
@@ -104,22 +112,23 @@ const taskSchema = new mongoose.Schema({
             message: 'L\'échéance doit être postérieure à la date de création'
         }
     },
+    // --- Author Info (embedded, not a ref) ---
     auteur: {
-        nom: {
+        nom: {   // Last name
             type: String,
             required: [true, 'Le nom de l\'auteur est requis'],
             trim: true,
             minlength: [2, 'Le nom doit contenir au moins 2 caractères'],
             maxlength: [50, 'Le nom ne peut pas dépasser 50 caractères']
         },
-        prenom: {
+        prenom: { // First name
             type: String,
             required: [true, 'Le prénom de l\'auteur est requis'],
             trim: true,
             minlength: [2, 'Le prénom doit contenir au moins 2 caractères'],
             maxlength: [50, 'Le prénom ne peut pas dépasser 50 caractères']
         },
-        email: {
+        email: {  // Author email contact
             type: String,
             required: [true, 'L\'email de l\'auteur est requis'],
             trim: true,
@@ -127,12 +136,14 @@ const taskSchema = new mongoose.Schema({
             match: [/^\S+@\S+\.\S+$/, 'Veuillez fournir un email valide']
         }
     },
+    // --- Classification ---
     categorie: {
         type: String,
         trim: true,
         minlength: [2, 'La catégorie doit contenir au moins 2 caractères'],
         maxlength: [30, 'La catégorie ne peut pas dépasser 30 caractères']
     },
+    // Tags — max 10 tags, each 2-20 characters
     etiquettes: {
         type: [String],
         validate: {
@@ -142,7 +153,8 @@ const taskSchema = new mongoose.Schema({
             message: 'Maximum 10 étiquettes, chacune entre 2 et 20 caractères'
         }
     },
-    sousTaches: {
+    // --- Embedded Collections ---
+    sousTaches: {   // Subtasks array (max 20)
         type: [subtaskSchema],
         validate: {
             validator: function(arr) {
@@ -151,7 +163,7 @@ const taskSchema = new mongoose.Schema({
             message: 'Maximum 20 sous-tâches par tâche'
         }
     },
-    commentaires: {
+    commentaires: { // Comments array (max 50)
         type: [commentaireSchema],
         validate: {
             validator: function(arr) {
@@ -160,6 +172,7 @@ const taskSchema = new mongoose.Schema({
             message: 'Maximum 50 commentaires par tâche'
         }
     },
+    // --- User Assignments (refs to User model) ---
     assignedTo: [{
         user: {
             type: mongoose.Schema.Types.ObjectId,
@@ -170,12 +183,14 @@ const taskSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    historique: [historiqueSchema],
+    historique: [historiqueSchema], // Modification history log
+    // --- Ownership & Lifecycle ---
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'Task must belong to a user']
     },
+    // Soft delete fields — task is hidden but not removed from DB
     deleted: {
         type: Boolean,
         default: false
@@ -187,6 +202,7 @@ const taskSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
+    // Submit fields — marks a task as finalized/submitted
     submitted: {
         type: Boolean,
         default: false
@@ -204,7 +220,9 @@ const taskSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// Virtual field: task completion percentage
+// --- Virtual Fields (computed, not stored in DB) ---
+
+// Progression: percentage of subtasks marked as completed
 taskSchema.virtual('progression').get(function() {
     if (!this.sousTaches || this.sousTaches.length === 0) {
         return this.statut === 'terminée' ? 100 : 0;
@@ -213,13 +231,13 @@ taskSchema.virtual('progression').get(function() {
     return Math.round((completed / this.sousTaches.length) * 100);
 });
 
-// Virtual field: is overdue
+// Overdue: true if deadline has passed and task is not completed
 taskSchema.virtual('enRetard').get(function() {
     if (!this.echeance) return false;
     return this.echeance < new Date() && this.statut !== 'terminée';
 });
 
-// Middleware: Add creation to history
+// Pre-save hook: automatically add a 'creation' entry to history for new tasks
 taskSchema.pre('save', function(next) {
     if (this.isNew) {
         this.historique.push({
@@ -231,13 +249,13 @@ taskSchema.pre('save', function(next) {
     next();
 });
 
-// Create indexes for better performance
-taskSchema.index({ statut: 1, priorite: -1 });
-taskSchema.index({ echeance: 1 });
-taskSchema.index({ categorie: 1 });
-taskSchema.index({ 'auteur.email': 1 });
-taskSchema.index({ createdBy: 1 });
-taskSchema.index({ deleted: 1 });
+// --- Database Indexes for query performance ---
+taskSchema.index({ statut: 1, priorite: -1 });  // Filter by status + sort by priority
+taskSchema.index({ echeance: 1 });               // Sort/filter by deadline
+taskSchema.index({ categorie: 1 });              // Filter by category
+taskSchema.index({ 'auteur.email': 1 });         // Search by author email
+taskSchema.index({ createdBy: 1 });              // Filter tasks by owner
+taskSchema.index({ deleted: 1 });                // Separate active vs deleted tasks
 
 const Task = mongoose.model('Task', taskSchema);
 

@@ -1,7 +1,15 @@
+// ============================================
+// User Model (Data Layer)
+// Defines the Mongoose schema for users.
+// Handles password hashing automatically on save.
+// Only imported by userRepository (clean architecture).
+// ============================================
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+    // Unique display name for the user
     username: {
         type: String,
         required: [true, 'Username is required'],
@@ -10,6 +18,7 @@ const userSchema = new mongoose.Schema({
         minlength: [3, 'Username must be at least 3 characters'],
         maxlength: [30, 'Username cannot exceed 30 characters']
     },
+    // Unique email used for login
     email: {
         type: String,
         required: [true, 'Email is required'],
@@ -18,6 +27,7 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
     },
+    // Hashed password — excluded from queries by default (select: false)
     password: {
         type: String,
         required: [true, 'Password is required'],
@@ -43,11 +53,12 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: true
+    timestamps: true // Adds createdAt and updatedAt automatically
 });
 
-// Hash password before saving
+// Pre-save hook: hash password before storing in database
 userSchema.pre('save', async function(next) {
+    // Only hash if password field was modified (skip on other field updates)
     if (!this.isModified('password')) {
         return next();
     }
@@ -57,7 +68,7 @@ userSchema.pre('save', async function(next) {
     next();
 });
 
-// Compare password method
+// Instance method: compare a candidate password against the stored hash
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
