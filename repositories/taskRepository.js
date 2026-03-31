@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+require('../models/User'); // Ensure User model is registered for populate()
 
 // ============================================
 // TaskRepository - Data Access Layer
@@ -20,9 +21,9 @@ class TaskRepository {
             .limit(limit);
     }
 
-    // Find a single task matching filter criteria
+    // Find a single task matching filter criteria (populates assigned users)
     async findOne(filter) {
-        return await Task.findOne(filter);
+        return await Task.findOne(filter).populate('assignedTo.user', 'username email firstName lastName');
     }
 
     // Create a new task document in the database
@@ -142,6 +143,11 @@ class TaskRepository {
 
     // --- Assignment Operations ---
 
+    // Check if a user is already assigned to a task (uses MongoDB query, no populate needed)
+    async hasAssignment(taskId, userId) {
+        return await Task.exists({ _id: taskId, 'assignedTo.user': userId });
+    }
+
     // Assign a user to a task and log it in history
     async addAssignment(taskId, userId) {
         return await Task.findByIdAndUpdate(taskId, {
@@ -152,12 +158,16 @@ class TaskRepository {
         }, { new: true });
     }
 
-    // Remove a user assignment and log it in history
+    // Remove a user assignment atomically (returns null if user wasn't assigned)
     async removeAssignment(taskId, userId) {
-        return await Task.findByIdAndUpdate(taskId, {
-            $pull: { assignedTo: { user: userId } },
-            $push: { historique: { action: 'modification', date: new Date(), details: 'Member removed from task' } }
-        }, { new: true });
+        return await Task.findOneAndUpdate(
+            { _id: taskId, 'assignedTo.user': userId },
+            {
+                $pull: { assignedTo: { user: userId } },
+                $push: { historique: { action: 'modification', date: new Date(), details: 'Member removed from task' } }
+            },
+            { new: true }
+        );
     }
 
     // --- History ---

@@ -153,15 +153,17 @@ class TaskService {
     // Assign a user to a task (prevents duplicate assignments)
     async assignUser(taskId, userId) {
         const task = await this._findTask(taskId);
-        if (task.assignedTo.some(a => a.user?.toString() === userId)) throw new ApiError(400, 'User already assigned to this task');
+        const alreadyAssigned = await taskRepository.hasAssignment(taskId, userId);
+        if (alreadyAssigned) throw new ApiError(400, 'User already assigned to this task');
         return taskRepository.addAssignment(taskId, userId);
     }
 
     // Remove a user's assignment from a task
     async unassignUser(taskId, userId) {
-        const task = await this._findTask(taskId);
-        if (!task.assignedTo.some(a => a.user?.toString() === userId)) throw new ApiError(404, 'User not assigned to this task');
-        return taskRepository.removeAssignment(taskId, userId);
+        await this._findTask(taskId);
+        const result = await taskRepository.removeAssignment(taskId, userId);
+        if (!result) throw new ApiError(404, 'User not assigned to this task');
+        return result;
     }
 }
 

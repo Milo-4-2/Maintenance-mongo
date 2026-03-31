@@ -51,6 +51,7 @@ function initializeEventListeners() {
     on('statsBtn', 'click', () => loadStats());
     on('submittedBtn', 'click', () => { currentSubmittedPage = 1; loadSubmitted(); });
     on('trashBtn', 'click', () => { currentTrashPage = 1; loadTrash(); });
+    on('membersBtn', 'click', () => loadMembers());
     on('themeToggle', 'click', () => toggleTheme());
     on('exportBtn', 'click', () => exportTasks());
 
@@ -323,4 +324,100 @@ async function exportTasks() {
         } else showError('Error exporting tasks');
     }, 'Unable to export tasks');
     hideLoading();
+}
+
+// ---- Members ----
+
+// Load and display all registered members in the Members modal
+async function loadMembers() {
+    await action(async () => {
+        const data = await AuthAPI.getUsers();
+        if (data.success) { renderMembers(data.data); document.getElementById('membersModal').classList.remove('hidden'); }
+        else showError('Error loading members');
+    }, 'Unable to load members');
+}
+
+// Cached members list and current task ID for the assign dropdown
+let _assignUsers = [];
+let _assignTaskId = null;
+let _assignedIds = new Set();
+
+// Open the assign dropdown: fetch members, cache them, show the list
+async function openAssignDropdown(taskId) {
+    _assignTaskId = taskId;
+    await action(async () => {
+        const data = await AuthAPI.getUsers();
+        if (!data.success) { showError('Error loading users'); return; }
+        _assignUsers = data.data;
+        // Collect already-assigned user IDs so we can filter them out
+        _assignedIds = new Set();
+        document.querySelectorAll('.assigned-item button[onclick*="unassignUser"]').forEach(btn => {
+            const match = btn.getAttribute('onclick').match(/unassignUser\('[^']+','([^']+)'\)/);
+            if (match) _assignedIds.add(match[1]);
+        });
+        filterAssignDropdown();
+    }, 'Unable to load members');
+}
+
+// Filter dropdown items based on what user typed in the search input
+function filterAssignDropdown() {
+    const input = document.getElementById('assignSearchInput');
+    const list = document.getElementById('assignDropdownList');
+    if (!input || !list) return;
+    const query = input.value.toLowerCase().trim();
+
+    // Filter out already-assigned users, then match by name/username/email
+    const filtered = _assignUsers.filter(u => {
+        if (_assignedIds.has(u._id)) return false;
+        if (!query) return true;
+        const full = `${u.firstName} ${u.lastName} ${u.username} ${u.email}`.toLowerCase();
+        return full.includes(query);
+    });
+
+    if (!filtered.length) {
+        list.innerHTML = `<div class="assign-dropdown-empty">${query ? 'No matching members' : 'All members assigned'}</div>`;
+    } else {
+        list.innerHTML = filtered.map(u => `
+            <div class="assign-dropdown-item" onclick="pickAssignUser('${u._id}')">
+                <span class="member-avatar-sm">${escapeHtml(u.firstName[0])}${escapeHtml(u.lastName[0])}</span>
+                <div>
+                    <div>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</div>
+                    <div class="assign-dd-sub">@${escapeHtml(u.username)} · ${escapeHtml(u.email)}</div>
+                </div>
+            </div>`).join('');
+    }
+    list.classList.add('show');
+}
+
+// Assign the selected user to the task and refresh detail view
+async function pickAssignUser(userId) {
+    const list = document.getElementById('assignDropdownList');
+    if (list) list.classList.remove('show');
+    const input = document.getElementById('assignSearchInput');
+    if (input) input.value = '';
+
+    await action(async () => {
+        const res = await AssignAPI.assign(_assignTaskId, userId);
+        if (res.success) { showSuccess('Member assigned!'); await openTaskDetail(_assignTaskId); }
+        else showError(res.error || 'Error assigning user');
+    }, 'Unable to assign member');
+}
+
+// Close the assign dropdown when clicking outside
+document.addEventListener('click', e => {
+    const wrap = document.querySelector('.assign-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        const list = document.getElementById('assignDropdownList');
+        if (list) list.classList.remove('show');
+    }
+});
+
+// Remove a user from a task's assigned members
+async function unassignUser(taskId, userId) {
+    if (!confirm('Remove this member from the task?')) return;
+    await action(async () => {
+        const data = await AssignAPI.unassign(taskId, userId);
+        if (data.success) { showSuccess('Member removed!'); await openTaskDetail(taskId); }
+        else showError(data.error || 'Error removing member');
+    }, 'Unable to remove member');
 }

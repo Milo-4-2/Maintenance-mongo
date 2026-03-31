@@ -59,6 +59,7 @@ function createTaskCard(task) {
     const tags = task.etiquettes?.length ? task.etiquettes.map(t => `<span class="tag">${t}</span>`).join('') : '';
     const stCount = task.sousTaches?.length || 0;
     const stDone = task.sousTaches ? task.sousTaches.filter(s => s.statut === 'terminée').length : 0;
+    const assignCount = task.assignedTo?.length || 0;
 
     card.innerHTML = `
         <div class="task-card-header"><div>
@@ -70,7 +71,10 @@ function createTaskCard(task) {
         ${descSnippet(task)}
         ${task.categorie ? `<div class="task-meta"><span class="badge" style="background:var(--info);color:white;">${escapeHtml(task.categorie)}</span></div>` : ''}
         ${tags ? `<div class="task-tags">${tags}</div>` : ''}
-        ${stCount > 0 ? `<div class="task-meta"><span class="badge" style="background:var(--success);color:white;">${stDone}/${stCount} subtasks</span></div>` : ''}
+        <div class="task-meta">
+            ${stCount > 0 ? `<span class="badge" style="background:var(--success);color:white;">${stDone}/${stCount} subtasks</span>` : ''}
+            ${assignCount > 0 ? `<span class="badge" style="background:var(--primary);color:white;">👥 ${assignCount} member${assignCount > 1 ? 's' : ''}</span>` : ''}
+        </div>
         <div class="task-footer">
             <div class="task-date"><div>Created: ${new Date(task.dateCreation).toLocaleDateString('en-US')}</div>${task.echeance ? `<div>Deadline: ${echeance}</div>` : ''}</div>
             <div class="task-actions" onclick="event.stopPropagation()">
@@ -133,6 +137,21 @@ function createTrashCard(task) {
 
 const DATE_OPTS = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
 
+// Render member cards in the Members modal
+function renderMembers(users) {
+    const el = document.getElementById('membersContainer');
+    if (!users.length) { el.innerHTML = '<p style="text-align:center;color:var(--secondary);">No members found</p>'; return; }
+    el.innerHTML = users.map(u => `
+        <div class="member-card">
+            <div class="member-avatar">${escapeHtml(u.firstName[0])}${escapeHtml(u.lastName[0])}</div>
+            <div class="member-info">
+                <div class="member-name">${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</div>
+                <div class="member-username">@${escapeHtml(u.username)}</div>
+                <div class="member-email">${escapeHtml(u.email)}</div>
+            </div>
+        </div>`).join('');
+}
+
 // Render the full task detail view inside the detail modal
 function renderTaskDetail(task) {
     const fmtDate = d => new Date(d).toLocaleDateString('en-US', DATE_OPTS);
@@ -146,6 +165,16 @@ function renderTaskDetail(task) {
     const commentsHtml = task.commentaires?.length
         ? task.commentaires.map(c => `<div class="comment-item"><div class="comment-content"><div class="comment-author">${escapeHtml(c.auteur)}</div><div class="comment-text">${escapeHtml(c.texte)}</div><div class="comment-date">${fmtDate(c.date)}</div></div><button class="btn btn-danger btn-sm" onclick="deleteComment('${task._id}','${c._id}')">Delete</button></div>`).join('')
         : '<div class="no-items">No comments</div>';
+
+    // Assigned users section with unassign buttons
+    const assignedHtml = task.assignedTo?.length
+        ? task.assignedTo.map(a => {
+            const u = a.user;
+            const name = u ? `${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}` : 'Unknown user';
+            const uid = u ? (u._id || u) : a.user;
+            return `<div class="assigned-item"><div class="assigned-info"><span class="member-avatar-sm">${u ? escapeHtml(u.firstName[0]) + escapeHtml(u.lastName[0]) : '??'}</span><span>${name}</span><span style="font-size:12px;color:var(--secondary);margin-left:8px;">Assigned ${new Date(a.assignedAt).toLocaleDateString('en-US')}</span></div><button class="btn btn-danger btn-sm" onclick="unassignUser('${task._id}','${uid}')">Remove</button></div>`;
+        }).join('')
+        : '<div class="no-items">No one assigned</div>';
 
     document.getElementById('taskDetail').innerHTML = `
         <h2>${escapeHtml(task.titre)}</h2>
@@ -162,6 +191,12 @@ function renderTaskDetail(task) {
             <div class="detail-item"><span class="detail-label">Full Name</span><span class="detail-value">${escapeHtml(task.auteur.prenom)} ${escapeHtml(task.auteur.nom)}</span></div>
             <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value">${escapeHtml(task.auteur.email)}</span></div>
         </div></div>
+        <div class="detail-section"><h3>Assigned Members</h3>${assignedHtml}
+            <div class="assign-dropdown-wrap" style="margin-top:15px;">
+                <input type="text" class="assign-search-input" id="assignSearchInput" placeholder="Type a name to assign..." autocomplete="off" onfocus="openAssignDropdown('${task._id}')" oninput="filterAssignDropdown()">
+                <div class="assign-dropdown-list" id="assignDropdownList"></div>
+            </div>
+        </div>
         <div class="detail-section"><h3>Subtasks</h3>${subtasksHtml}<button class="btn btn-primary" style="margin-top:15px;" onclick="addSubtask('${task._id}')">Add Subtask</button></div>
         <div class="detail-section"><h3>Comments</h3>${commentsHtml}<button class="btn btn-primary" style="margin-top:15px;" onclick="addComment('${task._id}')">Add Comment</button></div>`;
 }

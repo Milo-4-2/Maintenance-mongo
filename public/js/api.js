@@ -40,5 +40,12 @@ const TaskAPI = {
 const AuthAPI = {
     login: (email, password) => api(`${AUTH_URL}/login`, 'POST', { email, password }), // POST /api/auth/login
     register: (data) => api(`${AUTH_URL}/register`, 'POST', data),                     // POST /api/auth/register
-    getMe: () => api(`${AUTH_URL}/me`)                                                 // GET  /api/auth/me
+    getMe: () => api(`${AUTH_URL}/me`),                                                // GET  /api/auth/me
+    getUsers: () => api(`${AUTH_URL}/users`)                                           // GET  /api/auth/users (all members)
+};
+
+// --- Assignment API Endpoints ---
+const AssignAPI = {
+    assign: (taskId, userId) => api(`${API_URL}/${taskId}/assign`, 'POST', { userId }),       // POST   /api/tasks/:id/assign
+    unassign: (taskId, userId) => api(`${API_URL}/${taskId}/assign/${userId}`, 'DELETE')       // DELETE /api/tasks/:id/assign/:userId
 };

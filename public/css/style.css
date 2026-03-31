@@ -585,6 +585,182 @@ body {
     .stats-grid {
         grid-template-columns: 1fr;
     }
+
+    .members-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   MEMBERS
+   ============================================ */
+
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 10px 0;
+}
+
+.member-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.member-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.member-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.member-avatar-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--dark);
+}
+
+.member-username {
+    font-size: 13px;
+    color: var(--primary);
+    margin-top: 2px;
+}
+
+.member-email {
+    font-size: 13px;
+    color: var(--secondary);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Assigned members list in task detail */
+.assigned-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--bg-surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.assigned-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Searchable member assign dropdown */
+.assign-dropdown-wrap {
+    position: relative;
+    margin-top: 10px;
+}
+
+.assign-search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--bg-input);
+    color: var(--dark);
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.assign-search-input:focus {
+    border-color: var(--primary);
+}
+
+.assign-dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    display: none;
+}
+
+.assign-dropdown-list.show { display: block; }
+
+.assign-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.assign-dropdown-item:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.assign-dropdown-item:hover .assign-dd-sub {
+    color: rgba(255,255,255,0.7);
+}
+
+.assign-dd-sub {
+    font-size: 12px;
+    color: var(--secondary);
+}
+
+.assign-dropdown-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--secondary);
+    font-style: italic;
 }
 
 /* ============================================

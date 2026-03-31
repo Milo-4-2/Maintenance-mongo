@@ -81,6 +81,7 @@
             <h1>Task Manager</h1>
             <div class="header-actions">
                 <span id="userInfo" class="user-info"></span>
+                <button id="membersBtn" class="btn btn-secondary">Members</button>
                 <button id="statsBtn" class="btn btn-secondary">Statistics</button>
                 <button id="submittedBtn" class="btn btn-secondary">Submitted</button>
                 <button id="trashBtn" class="btn btn-secondary">Trash</button>
@@ -285,6 +286,15 @@
                 <span id="submittedPageInfo">Page 1 of 1</span>
                 <button id="submittedNextPage" class="btn btn-secondary">Next</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Members Modal -->
+    <div id="membersModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <span class="close" id="closeMembers">&times;</span>
+            <h2>Members</h2>
+            <div id="membersContainer" class="members-grid"></div>
         </div>
     </div>
 
