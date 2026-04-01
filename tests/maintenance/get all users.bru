@@ -1,0 +1,37 @@
+meta {
+  name: get all users
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:3000/api/auth/users
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Get users list successfully", () => {
+    const body = res.getBody();
+    
+    expect(res.status).to.equal(200);
+    
+    expect(body.count).to.be.greaterThan(1);
+    
+    const userExists = body.data.some(user =>
+        user.username === "test_username" &&
+        user.email === "test@mail.com"
+    );
+  
+    expect(userExists).to.equal(true);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
