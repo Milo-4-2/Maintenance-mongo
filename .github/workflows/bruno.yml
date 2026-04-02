@@ -38,7 +38,10 @@ jobs:
           echo "PORT=3000" > .env
           echo "NODE_ENV=development" > .env
           echo "MONGO_URI=mongodb://127.0.0.1:27017/mongo-maintenance" > .env
-          cat .env
+
+      - name: Start node server
+        run: |
+          npm start
 
       - name: Run Bruno tests
         run: |
