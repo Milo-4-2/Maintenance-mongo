@@ -1,0 +1,38 @@
+meta {
+  name: create subtask
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/api/tasks/{{id}}/subtasks
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "titre": "subtask test"
+  }
+}
+
+tests {
+  test("Subtask created successfully", () => {
+    const body = res.getBody();
+  
+    expect(res.getStatus()).to.equal(201);
+    expect(body.success).to.equal(true);
+  });
+  
+  const body = res.getBody();
+  bru.setEnvVar("subtaskid", body.data.sousTaches[0]._id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

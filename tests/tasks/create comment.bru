@@ -1,0 +1,39 @@
+meta {
+  name: create comment
+  type: http
+  seq: 8
+}
+
+post {
+  url: http://localhost:3000/api/tasks/{{id}}/comments
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "auteur": "auteur test",
+    "texte": "texte test"
+  }
+}
+
+tests {
+  test("Comment created successfully", () => {
+    const body = res.getBody();
+  
+    expect(res.getStatus()).to.equal(201);
+    expect(body.success).to.equal(true);
+  });
+  
+  const body = res.getBody();
+  bru.setEnvVar("commentid", body.data.commentaires[0]._id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

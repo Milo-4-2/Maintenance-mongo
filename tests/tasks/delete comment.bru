@@ -1,11 +1,11 @@
 meta {
-  name: delete task
+  name: delete comment
   type: http
-  seq: 10
+  seq: 9
 }
 
 delete {
-  url: http://localhost:3000/api/tasks/{{id}}
+  url: http://localhost:3000/api/tasks/{{id}}/comments/{{commentid}}
   body: none
   auth: inherit
 }
@@ -15,7 +15,7 @@ headers {
 }
 
 tests {
-  test("Should delete created task", () => {
+  test("Should delete created comment", () => {
     const body = res.getBody();
   
     expect(res.getStatus()).to.equal(200);

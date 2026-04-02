@@ -1,12 +1,12 @@
 meta {
-  name: delete task
+  name: update subtask
   type: http
-  seq: 10
+  seq: 6
 }
 
-delete {
-  url: http://localhost:3000/api/tasks/{{id}}
-  body: none
+put {
+  url: http://localhost:3000/api/tasks/{{id}}/subtasks/{{subtaskid}}
+  body: json
   auth: inherit
 }
 
@@ -14,8 +14,14 @@ headers {
   Authorization: Bearer {{token}}
 }
 
+body:json {
+  {
+    "titre": "subtask test updated"
+  }
+}
+
 tests {
-  test("Should delete created task", () => {
+  test("Should update created subtask", () => {
     const body = res.getBody();
   
     expect(res.getStatus()).to.equal(200);
