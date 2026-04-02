@@ -43,4 +43,4 @@ jobs:
       - name: Run Bruno tests
         run: |
           cd tests
-          bruno run --env dev
+          bru run --env dev
