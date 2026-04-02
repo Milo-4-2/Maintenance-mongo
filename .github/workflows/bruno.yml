@@ -58,4 +58,4 @@ jobs:
       - name: Run Bruno tests
         run: |
           cd tests
-          bruno run tasks-tests.json --env .env
+          bruno run --env dev
