@@ -8,45 +8,36 @@ on:
 jobs:
   bruno-tests:
     runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:6.0.7
-        ports:
-          - 27017:27017
-        env:
-          MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: example
-          MONGO_INITDB_DATABASE: mongo-maintenance
+    strategy:
+      matrix:
+        node-version: [22.x, 24.x]
+        mongodb-version: ['6.0', '7.0', '8.0']
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+            mongodb-version: ${{ matrix.mongodb-version }}
+            mongodb-replica-set: test-rs
+            mongodb-port: 27017
 
       - name: Install dependencies
         run: |
           npm install -g @usebruno/cli
           npm install
 
-      - name: Wait for MongoDB to be ready
-        run: |
-          echo "Waiting for MongoDB..."
-          for i in {1..30}; do
-            mongo --username root --password example --eval "db.adminCommand('ping')" && break
-            sleep 1
-          done
-
-      - name: Initialize MongoDB collections
-        run: |
-          docker exec $(docker ps -q -f ancestor=mongo:6.0.7) \ mongo testdb --username root --password example \ --eval "db.createCollection('tasks'); db.createCollection('users');"
-
       - name: Create .env file
         run: |
-          echo "MONGO_URI=mongodb://root:example@localhost:27017/mongo-maintenance" > .env
+          echo "PORT=3000" > .env
+          echo "NODE_ENV=development" > .env
+          echo "MONGO_URI=mongodb://127.0.0.1:27017/mongo-maintenance" > .env
           cat .env
 
       - name: Run Bruno tests
