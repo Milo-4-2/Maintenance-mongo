@@ -1,0 +1,61 @@
+name: Bruno + MongoDB CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  bruno-tests:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongo --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: example
+          MONGO_INITDB_DATABASE: mongo-maintenance
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          npm install -g bruno-cli
+          npm install
+
+      - name: Wait for MongoDB to be ready
+        run: |
+          echo "Waiting for MongoDB..."
+          for i in {1..30}; do
+            mongo --username root --password example --eval "db.adminCommand('ping')" && break
+            sleep 1
+          done
+
+      - name: Initialize MongoDB collections
+        run: |
+          echo "Creating collections..."
+          mongo testdb --username root --password example --eval "db.createCollection('tasks'); db.createCollection('users');"
+
+      - name: Create .env file
+        run: |
+          echo "MONGO_URI=mongodb://root:example@localhost:27017/testdb" > .env
+          cat .env
+
+      - name: Run Bruno tests
+        run: |
+          cd tests
+          bruno run tasks-tests.json --env .env
