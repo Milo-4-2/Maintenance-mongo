@@ -42,8 +42,7 @@ jobs:
 
       - name: Initialize MongoDB collections
         run: |
-          echo "Creating collections..."
-          mongo testdb --username root --password example --eval "db.createCollection('tasks'); db.createCollection('users');"
+          docker exec $(docker ps -q -f ancestor=mongo:6.0.7) \ mongo testdb --username root --password example \ --eval "db.createCollection('tasks'); db.createCollection('users');"
 
       - name: Create .env file
         run: |
