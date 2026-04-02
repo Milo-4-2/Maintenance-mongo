@@ -33,10 +33,6 @@ function escapeHtml(text) {
     return text.toString().replace(/[&<>"']/g, m => map[m]);
 }
 
-// --- User Feedback ---
-function showSuccess(msg) { alert('✅ ' + msg); }
-function showError(msg) { alert('❌ ' + msg); }
-
 // Show/hide loading spinner and dim the task container
 function showLoading() {
     const l = document.getElementById('loading'), t = document.getElementById('tasksContainer');

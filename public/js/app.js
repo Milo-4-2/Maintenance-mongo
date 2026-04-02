@@ -22,7 +22,7 @@ function on(id, event, handler) {
 // Helper: wrap async operations with consistent error handling
 async function action(fn, errMsg) {
     try { await fn(); }
-    catch (e) { console.error(e); showError(errMsg); }
+    catch (e) { console.error(e); }
 }
 
 // Register all UI event listeners (forms, buttons, pagination, modals)
@@ -76,7 +76,6 @@ async function loadTasks() {
     await action(async () => {
         const data = await TaskAPI.getTasks(currentPage, currentFilters);
         if (data.success) { totalPages = data.pages; renderTasks(data.data); updatePagination(); }
-        else showError('Error loading tasks');
     }, 'Unable to connect to server');
     hideLoading();
 }
@@ -87,7 +86,6 @@ async function openTaskDetail(taskId) {
     await action(async () => {
         const data = await TaskAPI.getTask(taskId);
         if (data.success) { renderTaskDetail(data.data); document.getElementById('detailModal').classList.remove('hidden'); }
-        else showError('Error loading details');
     }, 'Unable to load details');
     hideLoading();
 }
@@ -97,7 +95,7 @@ async function submitTask(taskId) {
     if (!confirm('Submit this task? It will be moved to Submitted section.')) return;
     await action(async () => {
         const data = await TaskAPI.submitTask(taskId);
-        if (data.success) { showSuccess('Task submitted successfully!'); loadTasks(); } else showError('Error submitting task');
+        if (data.success) loadTasks();
     }, 'Unable to submit task');
 }
 
@@ -106,7 +104,7 @@ async function unsubmitTask(taskId) {
     if (!confirm('Unsubmit this task? It will be moved back to active tasks.')) return;
     await action(async () => {
         const data = await TaskAPI.unsubmitTask(taskId);
-        if (data.success) { showSuccess('Task unsubmitted successfully!'); loadSubmitted(); loadTasks(); } else showError('Error unsubmitting task');
+        if (data.success) { loadSubmitted(); loadTasks(); }
     }, 'Unable to unsubmit task');
 }
 
@@ -115,7 +113,6 @@ async function loadSubmitted() {
     await action(async () => {
         const data = await TaskAPI.getSubmitted(currentSubmittedPage);
         if (data.success) { totalSubmittedPages = data.pages; renderSubmitted(data.data); updateSubmittedPagination(); document.getElementById('submittedModal').classList.remove('hidden'); }
-        else showError('Error loading submitted tasks');
     }, 'Unable to load submitted tasks');
 }
 
@@ -124,7 +121,6 @@ async function viewSubmittedDetail(taskId) {
     await action(async () => {
         const data = await TaskAPI.getTask(taskId);
         if (data.success) { renderTaskDetail(data.data); document.getElementById('submittedModal').classList.add('hidden'); document.getElementById('detailModal').classList.remove('hidden'); }
-        else showError('Error loading task details');
     }, 'Unable to load details');
 }
 
@@ -133,7 +129,6 @@ async function loadTrash() {
     await action(async () => {
         const data = await TaskAPI.getTrash(currentTrashPage);
         if (data.success) { totalTrashPages = data.pages; renderTrash(data.data); updateTrashPagination(); document.getElementById('trashModal').classList.remove('hidden'); }
-        else showError('Error loading trash');
     }, 'Unable to load trash');
 }
 
@@ -142,7 +137,7 @@ async function restoreTask(taskId) {
     if (!confirm('Restore this task?')) return;
     await action(async () => {
         const data = await TaskAPI.restoreTask(taskId);
-        if (data.success) { showSuccess('Task restored successfully!'); loadTrash(); loadTasks(); } else showError('Error restoring task');
+        if (data.success) { loadTrash(); loadTasks(); }
     }, 'Unable to restore task');
 }
 
@@ -151,7 +146,7 @@ async function permanentlyDeleteTask(taskId) {
     if (!confirm('⚠️ PERMANENTLY DELETE this task? This cannot be undone!')) return;
     await action(async () => {
         const data = await TaskAPI.permanentlyDeleteTask(taskId);
-        if (data.success) { showSuccess('Task permanently deleted!'); loadTrash(); } else showError('Error deleting task');
+        if (data.success) loadTrash();
     }, 'Unable to delete task');
 }
 
@@ -215,8 +210,8 @@ async function saveTask() {
 
     await action(async () => {
         const data = taskId ? await TaskAPI.updateTask(taskId, formData) : await TaskAPI.createTask(formData);
-        if (data.success) { showSuccess(taskId ? 'Task updated successfully!' : 'Task created successfully!'); closeTaskModal(); currentFilters = {}; currentPage = 1; loadTasks(); }
-        else showError(data.error || 'Error saving task');
+        if (data.success) { closeTaskModal(); currentFilters = {}; currentPage = 1; loadTasks(); }
+        else console.warn(data.error || 'Error saving task');
     }, 'Unable to save task');
 }
 
@@ -224,7 +219,7 @@ async function saveTask() {
 async function editTask(taskId) {
     await action(async () => {
         const data = await TaskAPI.getTask(taskId);
-        if (data.success) openTaskModal(data.data); else showError('Unable to load task');
+        if (data.success) openTaskModal(data.data);
     }, 'Error loading task');
 }
 
@@ -233,7 +228,7 @@ async function deleteTask(taskId) {
     if (!confirm('Are you sure you want to delete this task?')) return;
     await action(async () => {
         const data = await TaskAPI.deleteTask(taskId);
-        if (data.success) { showSuccess('Task deleted successfully!'); loadTasks(); } else showError(data.error || 'Error deleting task');
+        if (data.success) loadTasks();
     }, 'Unable to delete task');
 }
 
@@ -245,7 +240,7 @@ async function addSubtask(taskId) {
     if (!titre) return;
     await action(async () => {
         const data = await TaskAPI.addSubtask(taskId, { titre, statut: 'à faire' });
-        if (data.success) { showSuccess('Subtask added!'); openTaskDetail(taskId); } else showError('Error adding subtask');
+        if (data.success) openTaskDetail(taskId);
     }, 'Unable to add subtask');
 }
 
@@ -254,7 +249,7 @@ async function deleteSubtask(taskId, subtaskId) {
     if (!confirm('Delete this subtask?')) return;
     await action(async () => {
         const data = await TaskAPI.deleteSubtask(taskId, subtaskId);
-        if (data.success) { showSuccess('Subtask deleted!'); openTaskDetail(taskId); } else showError('Error deleting subtask');
+        if (data.success) openTaskDetail(taskId);
     }, 'Unable to delete');
 }
 
@@ -266,7 +261,7 @@ async function addComment(taskId) {
     if (!texte) return;
     await action(async () => {
         const data = await TaskAPI.addComment(taskId, { auteur, texte });
-        if (data.success) { showSuccess('Comment added!'); openTaskDetail(taskId); } else showError('Error adding comment');
+        if (data.success) openTaskDetail(taskId);
     }, 'Unable to add comment');
 }
 
@@ -275,7 +270,7 @@ async function deleteComment(taskId, commentId) {
     if (!confirm('Delete this comment?')) return;
     await action(async () => {
         const data = await TaskAPI.deleteComment(taskId, commentId);
-        if (data.success) { showSuccess('Comment deleted!'); openTaskDetail(taskId); } else showError('Error deleting comment');
+        if (data.success) openTaskDetail(taskId);
     }, 'Unable to delete');
 }
 
@@ -305,7 +300,6 @@ async function loadStats() {
     await action(async () => {
         const data = await TaskAPI.getStats();
         if (data.success) { renderStats(data.data); document.getElementById('statsModal').classList.remove('hidden'); }
-        else showError('Error loading statistics');
     }, 'Unable to load statistics');
 }
 
@@ -320,8 +314,7 @@ async function exportTasks() {
             const link = document.createElement('a');
             link.href = url; link.download = `tasks_export_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
-            showSuccess('Tasks exported successfully!');
-        } else showError('Error exporting tasks');
+        }
     }, 'Unable to export tasks');
     hideLoading();
 }
@@ -333,7 +326,6 @@ async function loadMembers() {
     await action(async () => {
         const data = await AuthAPI.getUsers();
         if (data.success) { renderMembers(data.data); document.getElementById('membersModal').classList.remove('hidden'); }
-        else showError('Error loading members');
     }, 'Unable to load members');
 }
 
@@ -347,7 +339,7 @@ async function openAssignDropdown(taskId) {
     _assignTaskId = taskId;
     await action(async () => {
         const data = await AuthAPI.getUsers();
-        if (!data.success) { showError('Error loading users'); return; }
+        if (!data.success) return;
         _assignUsers = data.data;
         // Collect already-assigned user IDs so we can filter them out
         _assignedIds = new Set();
@@ -398,8 +390,7 @@ async function pickAssignUser(userId) {
 
     await action(async () => {
         const res = await AssignAPI.assign(_assignTaskId, userId);
-        if (res.success) { showSuccess('Member assigned!'); await openTaskDetail(_assignTaskId); }
-        else showError(res.error || 'Error assigning user');
+        if (res.success) await openTaskDetail(_assignTaskId);
     }, 'Unable to assign member');
 }
 
@@ -417,7 +408,6 @@ async function unassignUser(taskId, userId) {
     if (!confirm('Remove this member from the task?')) return;
     await action(async () => {
         const data = await AssignAPI.unassign(taskId, userId);
-        if (data.success) { showSuccess('Member removed!'); await openTaskDetail(taskId); }
-        else showError(data.error || 'Error removing member');
+        if (data.success) await openTaskDetail(taskId);
     }, 'Unable to remove member');
 }

@@ -39,7 +39,7 @@ async function register(e) {
     const get = id => document.getElementById(id).value;
     const password = get('registerPassword');
     // Validate password confirmation
-    if (password !== get('registerConfirmPassword')) { showError('Passwords do not match!'); return; }
+    if (password !== get('registerConfirmPassword')) return;
     try {
         const data = await AuthAPI.register({
             firstName: get('registerFirstName'), lastName: get('registerLastName'),
@@ -48,10 +48,10 @@ async function register(e) {
         if (data.success) {
             // Store token and redirect to main app
             authToken = data.data.token; localStorage.setItem('token', authToken);
-            currentUser = data.data; showSuccess('Account created successfully!');
+            currentUser = data.data;
             showMainApp(); loadTasks();
-        } else { showError(data.error || 'Registration failed'); }
-    } catch { showError('Unable to register. Please try again.'); }
+        }
+    } catch {}
 }
 
 // Handle login form submission
@@ -62,15 +62,15 @@ async function login(e) {
         if (data.success) {
             // Store token and redirect to main app
             authToken = data.data.token; localStorage.setItem('token', authToken);
-            currentUser = data.data; showSuccess('Login successful!');
+            currentUser = data.data;
             showMainApp(); document.getElementById('userInfo').textContent = `Hello, ${currentUser.firstName}!`;
             loadTasks();
-        } else { showError(data.error || 'Login failed'); }
-    } catch { showError('Unable to login. Please try again.'); }
+        }
+    } catch {}
 }
 
 // Clear token and redirect to login page
 function logout() {
     authToken = null; currentUser = null; localStorage.removeItem('token');
-    showLoginPage(); showSuccess('Logged out successfully!');
+    showLoginPage();
 }

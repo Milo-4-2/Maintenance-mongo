@@ -64,7 +64,7 @@ class TaskService {
     async updateTask(id, data) {
         await this._findTask(id);
         await taskRepository.addHistoryEntry(id, { action: 'modification', date: new Date(), details: 'Tâche mise à jour' });
-        return taskRepository.findByIdAndUpdate(id, data);
+        return taskRepository.update(id, data);
     }
 
     async deleteTask(id, userId) { await this._findTask(id); await taskRepository.softDelete(id, userId); } // Soft-delete a task
