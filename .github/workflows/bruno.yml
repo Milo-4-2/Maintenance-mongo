@@ -29,7 +29,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install -g bruno-cli
+          pnpm install -g @usebruno/cli
           npm install
 
       - name: Wait for MongoDB to be ready
