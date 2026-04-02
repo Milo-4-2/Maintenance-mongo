@@ -17,8 +17,9 @@ headers {
 tests {
   test("Get users list successfully", () => {
     const body = res.getBody();
-    
-    expect(res.status).to.equal(200);
+  
+    expect(res.getStatus()).to.equal(200);
+    expect(body.success).to.equal(true);
     
     expect(body.count).to.be.greaterThan(1);
     

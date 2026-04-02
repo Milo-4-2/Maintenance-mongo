@@ -1,12 +1,12 @@
 meta {
-  name: log out
+  name: update task
   type: http
-  seq: 5
+  seq: 4
 }
 
-post {
-  url: http://localhost:3000/api/auth/logout
-  body: none
+put {
+  url: http://localhost:3000/api/tasks/{{id}}
+  body: json
   auth: inherit
 }
 
@@ -14,8 +14,14 @@ headers {
   Authorization: Bearer {{token}}
 }
 
+body:json {
+  {
+    "titre": "tache test updated"
+  }
+}
+
 tests {
-  test("Logout successful", () => {
+  test("Should update created task", () => {
     const body = res.getBody();
   
     expect(res.getStatus()).to.equal(200);

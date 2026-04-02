@@ -1,0 +1,51 @@
+meta {
+  name: create task
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/api/tasks
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "titre": "tache test",
+    "description": "description test",
+    "statut": "à faire",
+    "priorite": "moyenne",
+    "echeance": "2026-04-21",
+    "auteur": {
+      "nom": "test_lastname",
+      "prenom": "test_name",
+      "email": "test@mail.com"
+    },
+    "categorie": "test",
+    "etiquettes": [
+      "work"
+    ]
+  }
+}
+
+tests {
+  test("Task created successfully", () => {
+    const body = res.getBody();
+  
+    expect(res.getStatus()).to.equal(201);
+    expect(body.success).to.equal(true);
+  });
+  
+  const body = res.getBody();
+  bru.setEnvVar("id", body.data._id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,11 +1,11 @@
 meta {
-  name: log out
+  name: get task
   type: http
-  seq: 5
+  seq: 2
 }
 
-post {
-  url: http://localhost:3000/api/auth/logout
+get {
+  url: http://localhost:3000/api/tasks/{{id}}
   body: none
   auth: inherit
 }
@@ -15,7 +15,7 @@ headers {
 }
 
 tests {
-  test("Logout successful", () => {
+  test("Should return created task", () => {
     const body = res.getBody();
   
     expect(res.getStatus()).to.equal(200);
