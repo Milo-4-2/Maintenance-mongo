@@ -2,7 +2,7 @@ name: Bruno + MongoDB CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 jobs:
